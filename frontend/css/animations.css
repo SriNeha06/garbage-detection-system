@@ -1,0 +1,144 @@
+/* ===== ANIMATIONS ===== */
+
+/* Pulse — critical alerts, status dots */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.7; }
+}
+
+/* Fade-in from below — page transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer — loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* Spinner rotation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Bounce-in — new notifications */
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.08); opacity: 1; }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Slide-in from right — toast notifications */
+@keyframes slideInRight {
+  from { transform: translateX(110%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Slide-out to right */
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(110%); opacity: 0; }
+}
+
+/* Glow pulse for critical cards */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(213, 0, 0, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(213, 0, 0, 0.8); }
+}
+
+@keyframes glowPulseOrange {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 109, 0, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(255, 109, 0, 0.7); }
+}
+
+/* Progress ring fill */
+@keyframes ringFill {
+  from { --ring-percent: 0; }
+}
+
+/* Count-up number shimmer */
+@keyframes countShimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+.anim-fade-in-up {
+  animation: fadeInUp 0.45s ease-out both;
+}
+
+.anim-bounce-in {
+  animation: bounceIn 0.5s ease-out both;
+}
+
+.anim-pulse {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.anim-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Loading skeleton block */
+.skeleton {
+  background: linear-gradient(90deg, var(--card-bg) 25%, #1a2236 50%, var(--card-bg) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-heading {
+  height: 22px;
+  width: 60%;
+  margin-bottom: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+/* Loading spinner component */
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-lg {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+/* Toast transitions */
+.toast-enter {
+  animation: slideInRight 0.35s ease-out both;
+}
+
+.toast-exit {
+  animation: slideOutRight 0.3s ease-in both;
+}

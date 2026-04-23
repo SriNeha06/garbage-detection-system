@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# Database
+instance/
+*.db
+*.sqlite3
+app.db
+
+# Environment variables
+.env
+.env.local
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MacOS
+.DS_Store

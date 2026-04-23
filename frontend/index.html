@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GreenCity — Smart Waste Intelligence Dashboard</title>
+  <meta name="description" content="AI-powered smart city garbage detection system. Monitor bins, detect litter, and manage sanitation alerts in real-time." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/alerts.css" />
+
+  <style>
+    /* Leaflet dark popup override */
+    .leaflet-popup-content-wrapper { background: #1F2937 !important; color: #F9FAFB !important; border-radius: 10px !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+    .leaflet-popup-tip { background: #1F2937 !important; }
+    .leaflet-popup-close-button { color: #9CA3AF !important; }
+
+    /* Upload zone */
+    .upload-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: var(--radius); padding: 48px 20px; text-align: center; cursor: pointer; transition: all var(--transition); background: rgba(255,255,255,0.02); }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .upload-zone .upload-icon { font-size: 3rem; margin-bottom: 12px; color: var(--text-muted); }
+    .upload-zone p { color: var(--text-secondary); font-size: 0.9rem; }
+    .upload-zone .upload-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+    #upload-preview { max-height: 280px; margin: 16px auto 0; border-radius: var(--radius-sm); display: none; object-fit: contain; }
+
+    /* Result image */
+    #result-image { max-width: 100%; border-radius: var(--radius-sm); margin-bottom: 16px; display: none; }
+
+    /* Map container */
+    #city-map { width: 100%; height: calc(100vh - 180px); min-height: 450px; border-radius: var(--radius); }
+
+    /* Analytics summary cards */
+    .analytics-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .analytics-summary .a-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: center; }
+    .analytics-summary .a-card .a-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+    .analytics-summary .a-card .a-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    @media(max-width:768px){ .analytics-summary { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ====== MOBILE TOGGLE ====== -->
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="logo-icon">🗑️</span>
+          <div class="logo-text">
+            <h1>GreenCity</h1>
+            <p>Waste Intelligence</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="detection">
+          <span class="nav-icon">🔍</span> Detection Upload
+        </div>
+        <div class="nav-item" data-page="alerts">
+          <span class="nav-icon">🔔</span> Alerts Center
+        </div>
+        <div class="nav-item" data-page="cameras">
+          <span class="nav-icon">📷</span> Camera Management
+        </div>
+        <div class="nav-item" data-page="map">
+          <span class="nav-icon">🗺️</span> Live Map
+        </div>
+        <div class="nav-item" data-page="analytics">
+          <span class="nav-icon">📈</span> Analytics
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-status">
+          <span class="status-dot" id="connection-dot"></span>
+          <span id="connection-label">Connecting…</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <main class="main-content">
+
+      <!-- Toast Container -->
+      <div class="toast-container" id="toast-container"></div>
+
+      <!-- ======================================== -->
+      <!-- PAGE 1: DASHBOARD                        -->
+      <!-- ======================================== -->
+      <section class="page-section active" id="page-dashboard">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2 id="greeting-text">Good Morning, Officer 👋</h2>
+            <p id="live-clock"></p>
+          </div>
+          <div class="top-bar-actions">
+            <button class="btn btn-secondary" onclick="loadDashboardStats()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card card-glass card-green">
+            <div class="stat-card-header">
+              <span class="stat-icon">🔍</span>
+              <span class="stat-label">Detections Today</span>
+            </div>
+            <div class="stat-value" id="stat-detections-today">0</div>
+            <div class="stat-trend up"><i class="fas fa-arrow-up"></i> vs yesterday</div>
+          </div>
+
+          <div class="stat-card card-glass card-red" id="card-critical">
+            <div class="stat-card-header">
+              <span class="stat-icon">🚨</span>
+              <span class="stat-label">Critical Alerts</span>
+            </div>
+            <div class="stat-value" id="stat-critical-alerts">0</div>
+            <div class="stat-trend">Active today</div>
+          </div>
+
+          <div class="stat-card card-glass card-orange" id="card-overflow">
+            <div class="stat-card-header">
+              <span class="stat-icon">🗑️</span>
+              <span class="stat-label">Bins Overflowing</span>
+            </div>
+            <div class="stat-value" id="stat-bins-overflow">0</div>
+            <div class="stat-trend">Need attention</div>
+          </div>
+
+          <div class="stat-card card-glass card-blue">
+            <div class="stat-card-header">
+              <span class="stat-icon">🏆</span>
+              <span class="stat-label">Cleanliness Score</span>
+            </div>
+            <div class="cleanliness-ring" id="cleanliness-ring" style="--score:0">
+              <div class="ring-bg"></div>
+              <div class="ring-value"><span id="cleanliness-value">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid-60-40" style="margin-bottom:20px;">
+          <div class="chart-container">
+            <div class="chart-title">Detection Activity (7 Days)</div>
+            <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-title">Severity Breakdown</div>
+            <div class="chart-wrapper"><canvas id="severityChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="grid-50-50" style="margin-bottom:20px;">
+          <div class="chart-container">
+            <div class="chart-title">Zone Pollution Index</div>
+            <div class="chart-wrapper"><canvas id="zoneChart"></canvas></div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-title">Recent Detections</div>
+            <div class="recent-list" id="recent-detections-list">
+              <div class="empty-state"><div class="empty-icon">📋</div><p>Loading…</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hourly Distribution -->
+        <div class="chart-container">
+          <div class="chart-title">Hourly Distribution (Today)</div>
+          <div class="chart-wrapper"><canvas id="hourlyChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- ======================================== -->
+      <!-- PAGE 2: DETECTION UPLOAD                  -->
+      <!-- ======================================== -->
+      <section class="page-section" id="page-detection">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2>🔍 Detection Upload</h2>
+            <p>Upload an image to detect garbage, litter, and bin fill levels</p>
+          </div>
+        </div>
+
+        <div class="grid-50-50">
+          <!-- Left: Upload -->
+          <div>
+            <div class="upload-zone" id="drop-zone">
+              <div class="upload-icon" id="drop-placeholder">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag &amp; Drop image here or click to browse</p>
+                <p class="upload-hint">Accepted: JPG, JPEG, PNG, WebP (max 16 MB)</p>
+              </div>
+              <img id="upload-preview" alt="Preview" />
+              <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp" hidden />
+            </div>
+
+            <div style="margin-top:20px;">
+              <div class="form-group">
+                <label for="det-location">Location Name</label>
+                <input type="text" id="det-location" class="form-control" placeholder="e.g. Main Street Junction" />
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="det-latitude">Latitude</label>
+                  <input type="number" id="det-latitude" class="form-control" step="any" placeholder="13.0827" />
+                </div>
+                <div class="form-group">
+                  <label for="det-longitude">Longitude</label>
+                  <input type="number" id="det-longitude" class="form-control" step="any" placeholder="80.2707" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="det-camera">Camera (Optional)</label>
+                <select id="det-camera" class="form-control">
+                  <option value="">— Select Camera —</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary" id="detect-btn" onclick="submitDetection()" style="width:100%;justify-content:center;padding:14px;">
+                <i class="fas fa-search"></i> Run Detection
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Results -->
+          <div id="detection-results" style="display:none;">
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-header">
+                <span class="card-title">Annotated Result</span>
+              </div>
+              <img id="result-image" alt="Annotated detection" />
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+                <span style="font-weight:700;">Severity:</span>
+                <span id="result-severity" class="badge badge-low">LOW</span>
+                <span style="font-weight:700;margin-left:12px;">Objects:</span>
+                <span id="result-count" style="font-weight:800;font-size:1.1rem;">0</span>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Bin Fill Level</span>
+                <div id="bin-gauge"></div>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Detected Classes</span>
+                <div id="result-tags"></div>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Confidence Scores</span>
+                <div id="result-confidence"></div>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Alert Status</span>
+                <div id="result-alert"><span style="color:var(--text-muted)">—</span></div>
+              </div>
+
+              <div style="display:flex;gap:10px;">
+                <button class="btn btn-sm btn-secondary" onclick="downloadReport()">
+                  <i class="fas fa-download"></i> Download Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================== -->
+      <!-- PAGE 3: ALERTS CENTER                     -->
+      <!-- ======================================== -->
+      <section class="page-section" id="page-alerts">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2>🔔 Alerts Center</h2>
+            <p>Monitor and manage sanitation alerts</p>
+          </div>
+          <div class="top-bar-actions">
+            <button class="btn btn-secondary" onclick="handleSendTestAlert()">
+              <i class="fas fa-paper-plane"></i> Send Test Alert
+            </button>
+          </div>
+        </div>
+
+        <!-- Mini stats -->
+        <div class="alert-mini-stats">
+          <div class="alert-mini-stat">
+            <div>
+              <div class="ams-value" id="alert-stat-pending">0</div>
+              <div class="ams-label">Pending</div>
+            </div>
+          </div>
+          <div class="alert-mini-stat">
+            <div>
+              <div class="ams-value" id="alert-stat-avg">0 min</div>
+              <div class="ams-label">Avg Resolution</div>
+            </div>
+          </div>
+          <div class="alert-mini-stat">
+            <div>
+              <div class="ams-value" id="alert-stat-critical">0</div>
+              <div class="ams-label">Critical</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status filters -->
+        <div class="alert-filters">
+          <button class="filter-btn active" data-status="all" onclick="filterAlertsByStatus(this)">All</button>
+          <button class="filter-btn" data-status="pending" onclick="filterAlertsByStatus(this)">Pending</button>
+          <button class="filter-btn" data-status="acknowledged" onclick="filterAlertsByStatus(this)">Acknowledged</button>
+          <button class="filter-btn" data-status="resolved" onclick="filterAlertsByStatus(this)">Resolved</button>
+        </div>
+
+        <!-- Severity filters -->
+        <div class="alert-filters severity-filters" style="margin-top:-10px;">
+          <button class="filter-btn active" data-severity="all" onclick="filterAlertsBySeverity(this)">All Severities</button>
+          <button class="filter-btn" data-severity="critical" onclick="filterAlertsBySeverity(this)">🔴 Critical</button>
+          <button class="filter-btn" data-severity="high" onclick="filterAlertsBySeverity(this)">🟠 High</button>
+          <button class="filter-btn" data-severity="medium" onclick="filterAlertsBySeverity(this)">🟡 Medium</button>
+          <button class="filter-btn" data-severity="low" onclick="filterAlertsBySeverity(this)">🟢 Low</button>
+        </div>
+
+        <!-- Alerts list -->
+        <div class="alert-list" id="alerts-list">
+          <div class="empty-state"><div class="empty-icon">🔔</div><p>Loading alerts…</p></div>
+        </div>
+      </section>
+
+      <!-- ======================================== -->
+      <!-- PAGE 4: CAMERA MANAGEMENT                 -->
+      <!-- ======================================== -->
+      <section class="page-section" id="page-cameras">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2>📷 Camera Management</h2>
+            <p>Manage city surveillance cameras</p>
+          </div>
+          <div class="top-bar-actions">
+            <button class="btn btn-primary" onclick="openAddCameraModal()">
+              <i class="fas fa-plus"></i> Add Camera
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-3" id="cameras-grid">
+          <div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📷</div><p>Loading cameras…</p></div>
+        </div>
+      </section>
+
+      <!-- ======================================== -->
+      <!-- PAGE 5: LIVE MAP                          -->
+      <!-- ======================================== -->
+      <section class="page-section" id="page-map">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2>🗺️ Live Map</h2>
+            <p>Real-time detection locations across the city</p>
+          </div>
+          <div class="top-bar-actions">
+            <button class="btn btn-secondary" onclick="refreshMap()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div id="city-map"></div>
+      </section>
+
+      <!-- ======================================== -->
+      <!-- PAGE 6: ANALYTICS                         -->
+      <!-- ======================================== -->
+      <section class="page-section" id="page-analytics">
+        <div class="top-bar">
+          <div class="top-bar-greeting">
+            <h2>📈 Analytics</h2>
+            <p>Comprehensive waste management analytics</p>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="analytics-summary">
+          <div class="a-card">
+            <div class="a-value" id="analytics-total">0</div>
+            <div class="a-label">Total Detections (7d)</div>
+          </div>
+          <div class="a-card">
+            <div class="a-value" id="analytics-score" style="color:var(--primary);">0%</div>
+            <div class="a-label">Cleanliness Score</div>
+          </div>
+          <div class="a-card">
+            <div class="a-value" id="analytics-best" style="color:#42A5F5;">N/A</div>
+            <div class="a-label">Best Zone</div>
+          </div>
+          <div class="a-card">
+            <div class="a-value" id="analytics-worst" style="color:var(--critical);">N/A</div>
+            <div class="a-label">Worst Zone</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid-50-50" style="margin-bottom:20px;">
+          <div class="chart-container">
+            <div class="chart-title">Detection Trend</div>
+            <div class="chart-wrapper"><canvas id="analyticsTrendChart"></canvas></div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-title">Severity Distribution</div>
+            <div class="chart-wrapper"><canvas id="analyticsTypeChart"></canvas></div>
+          </div>
+        </div>
+        <div class="grid-50-50">
+          <div class="chart-container">
+            <div class="chart-title">Top Polluted Zones</div>
+            <div class="chart-wrapper"><canvas id="analyticsZoneChart"></canvas></div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-title">Peak Hours Heatmap</div>
+            <div class="chart-wrapper"><canvas id="analyticsHourlyChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ====== CAMERA MODAL ====== -->
+  <div class="modal-overlay" id="camera-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Add Camera</h3>
+        <button class="modal-close" onclick="closeCameraModal()">&times;</button>
+      </div>
+      <form id="cam-form">
+        <div class="form-group">
+          <label for="cam-name">Camera Name *</label>
+          <input type="text" id="cam-name" class="form-control" required placeholder="e.g. Main Street Junction" />
+        </div>
+        <div class="form-group">
+          <label for="cam-location">Location Name</label>
+          <input type="text" id="cam-location" class="form-control" placeholder="e.g. Main Street Junction" />
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="cam-lat">Latitude</label>
+            <input type="number" id="cam-lat" class="form-control" step="any" placeholder="13.0827" />
+          </div>
+          <div class="form-group">
+            <label for="cam-lng">Longitude</label>
+            <input type="number" id="cam-lng" class="form-control" step="any" placeholder="80.2707" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cam-stream">Stream URL</label>
+          <input type="text" id="cam-stream" class="form-control" placeholder="rtsp://camera-ip/stream" />
+        </div>
+        <div class="form-group">
+          <label for="cam-zone">Zone Type</label>
+          <select id="cam-zone" class="form-control">
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="industrial">Industrial</option>
+            <option value="park">Park</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:12px;">
+          <label for="cam-active" style="margin-bottom:0;">Active</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="cam-active" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">
+            <i class="fas fa-save"></i> Save Camera
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== SCRIPTS ====== -->
+  <!-- Leaflet.js -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- App JS (order matters) -->
+  <script src="js/api.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/detection.js"></script>
+  <script src="js/alerts.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

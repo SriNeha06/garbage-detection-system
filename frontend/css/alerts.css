@@ -1,0 +1,176 @@
+/* ===== ALERTS PAGE ===== */
+
+/* Filter bar */
+.alert-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.filter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.filter-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(0, 200, 83, 0.3);
+}
+
+/* Alert mini stats */
+.alert-mini-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.alert-mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+}
+
+.alert-mini-stat .ams-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.alert-mini-stat .ams-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Alert cards */
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all var(--transition);
+}
+
+.alert-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow);
+}
+
+.alert-card .alert-border {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.alert-card .alert-border.critical { background: var(--critical); }
+.alert-card .alert-border.high     { background: var(--accent); }
+.alert-card .alert-border.medium   { background: var(--medium); }
+.alert-card .alert-border.low      { background: var(--primary); }
+
+.alert-card .alert-body {
+  flex: 1;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.alert-card .alert-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.alert-card .alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-card .alert-location {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.alert-card .alert-message {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.alert-card .alert-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.alert-card .alert-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 16px 20px;
+}
+
+.alert-card .alert-status {
+  white-space: nowrap;
+}
+
+.alert-card .alert-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Pending pulse animation */
+.alert-card.is-pending {
+  border-color: rgba(255, 109, 0, 0.2);
+}
+
+.alert-card.is-pending .alert-status .badge {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .alert-card .alert-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .alert-card .alert-right {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 0;
+  }
+}
