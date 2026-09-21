@@ -18,7 +18,8 @@ from database.models import Camera, Detection, Alert, Zone
 # ---------------------------------------------------------------------------
 
 def create_app():
-    app = Flask(__name__)
+    frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
+    app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
     app.config.from_object(Config)
 
     # Ensure upload folder exists
@@ -26,6 +27,10 @@ def create_app():
 
     # CORS
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    @app.route('/', methods=['GET'])
+    def frontend():
+        return app.send_static_file('index.html')
 
     # Database
     init_app(app)
@@ -260,9 +265,10 @@ def _seed_database():
 # Run
 # ---------------------------------------------------------------------------
 
+app = create_app()
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    app = create_app()
 
     print("\n" + "=" * 60)
     print("  [GreenCity] Waste Intelligence System v1.0.0")
@@ -292,4 +298,9 @@ if __name__ == '__main__':
         print(f"    {ep}")
     print("\n" + "=" * 60 + "\n")
 
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('PORT', '5000')),
+        debug=Config.DEBUG,
+        use_reloader=False,
+    )

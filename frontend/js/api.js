@@ -1,6 +1,6 @@
 /* ===== API Module ===== */
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${window.GREENCITY_API_BASE || ''}/api`;
 
 /**
  * Generic fetch wrapper with error handling.

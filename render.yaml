@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: greencity-waste-intelligence
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: USE_MOCK_DETECTOR
+        value: "True"
+      - key: FLASK_DEBUG
+        value: "False"
